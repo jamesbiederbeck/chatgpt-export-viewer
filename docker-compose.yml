@@ -1,0 +1,7 @@
+services:
+  chatgpt-export-viewer:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chats:/app/chats
