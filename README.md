@@ -6,11 +6,12 @@ A web application for viewing ChatGPT chat history exported from ChatGPT. Provid
 
 ## Features
 
-- View list of all chats
-- Search through chats
+- Browse and search all your chats
+- Images, audio, and transcriptions rendered inline
+- Deep-linkable URLs per chat (`/chat/<id>`)
 - Dark theme support
 
-## Installation
+## Quick start (Docker)
 
 1. Clone the repository:
 ```bash
@@ -18,9 +19,28 @@ git clone https://github.com/sugrarin/chatgpt-export-viewer.git
 cd chatgpt-export-viewer
 ```
 
-2. Create a backup of your ChatGPT conversations (ChatGPT Settings - Data Controls - Export) and copy `conversations.json` to the root directory of this project
+2. Export your ChatGPT data: **Settings → Data Controls → Export data**, then place the downloaded `.zip` in a `data/` directory:
+```bash
+mkdir data
+cp ~/Downloads/chatgpt-export-*.zip data/
+```
 
-3. Run the script (this will create a `chats` directory with your conversations):
+3. Start the container:
+```bash
+docker compose up
+```
+
+On first start, the container automatically unpacks the zip, merges conversation shards, and splits chats. A `.initcomplete` sentinel is written so subsequent restarts skip init.
+
+4. Open `http://localhost:8000`
+
+## Manual setup (no Docker)
+
+1. Clone the repo (same as above).
+
+2. Export your ChatGPT data and copy `conversations.json` to the project root.
+
+3. Split conversations into individual files:
 ```bash
 python split_chats.py
 ```

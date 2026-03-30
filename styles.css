@@ -166,9 +166,27 @@ h2 {
     margin-bottom: 4px;
 }
 
+.chat-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .chat-date {
     font-size: 12px;
     color: #666;
+}
+
+.chat-filepath {
+    font-size: 12px;
+    color: #888;
+}
+
+.chat-filepath code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background-color: var(--assistant-message-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
 }
 
 .chat-messages {
@@ -215,6 +233,33 @@ h2 {
     text-align: center;
     padding: 10px;
     margin: 10px 0;
+}
+
+.part-text {
+    white-space: pre-wrap;
+}
+
+.part-transcription {
+    display: block;
+    font-style: italic;
+    opacity: 0.75;
+    margin-top: 6px;
+    font-size: 0.9em;
+}
+
+.chat-image {
+    display: block;
+    max-width: 100%;
+    max-height: 480px;
+    border-radius: 8px;
+    margin-top: 6px;
+    object-fit: contain;
+}
+
+.chat-audio {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
 }
 
 .no-results {

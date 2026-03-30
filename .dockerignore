@@ -1,0 +1,35 @@
+# Version control
+.git
+.gitignore
+
+# Chat data (mounted as volume at runtime)
+chats/
+data/
+*.zip
+
+# macOS system files
+.DS_Store
+
+# Python temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environment
+venv/
+env/
+.env/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# GitHub Actions
+.github/
+
+# Documentation / assets not needed at runtime
+README.md
+requirements.md
+app-preview.png

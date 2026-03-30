@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
+    <base href="/">
     <title>ChatGPT Chat History Viewer</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -61,19 +62,11 @@
                 const chats = await response.json();
                 const chatList = document.getElementById('chatList');
                 
-                // Create array of promises to load chat titles
-                const chatPromises = chats.map(async chat => {
-                    const chatResponse = await fetch(`/chats/${chat}`);
-                    const chatData = await chatResponse.json();
-                    return {
-                        id: chat,
-                        title: chatData.title || chat.replace('.json', ''),
-                        createTime: chatData.create_time
-                    };
-                });
-                
-                // Wait for all titles to load
-                const chatDetails = await Promise.all(chatPromises);
+                const chatDetails = chats.map(chat => ({
+                    id: chat.id,
+                    title: chat.title,
+                    createTime: chat.create_time,
+                }));
                 
                 // Sort chats by creation date (newest first)
                 chatDetails.sort((a, b) => b.createTime - a.createTime);
@@ -129,7 +122,11 @@
         }
 
         // Function to load chat content
-        async function loadChat(chatFile) {
+        async function loadChat(chatFile, pushState = true) {
+            if (pushState) {
+                const slug = chatFile.replace('.json', '');
+                history.pushState({ chatFile }, '', `/chat/${slug}`);
+            }
             try {
                 const response = await fetch(`/chats/${chatFile}`);
                 const chatData = await response.json();
@@ -138,7 +135,10 @@
                 const chatHeader = document.getElementById('chatHeader');
                 chatHeader.innerHTML = `
                     <h2>${chatData.title || chatFile.replace('.json', '')}</h2>
-                    <div class="chat-date">Created: ${formatDate(chatData.create_time)}</div>
+                    <div class="chat-header-meta">
+                        <div class="chat-date">Created: ${formatDate(chatData.create_time)}</div>
+                        <div class="chat-filepath"><code>chats/${chatFile}</code></div>
+                    </div>
                 `;
                 
                 // Display messages
@@ -152,38 +152,96 @@
                 // Find first message (with parent: null)
                 let currentId = Object.values(mapping).find(msg => msg.parent === null)?.children[0];
                 
+                const convId = chatFile.replace('.json', '');
+
                 // Collect all messages in correct order
                 while (currentId) {
                     const currentMessage = mapping[currentId];
-                    if (currentMessage.message && 
-                        currentMessage.message.content && 
-                        currentMessage.message.content.parts && 
-                        currentMessage.message.content.parts[0]) {
-                        
+                    const parts = currentMessage.message?.content?.parts;
+                    if (parts?.length) {
                         messages.push({
                             role: currentMessage.message.author.role,
-                            content: currentMessage.message.content.parts[0]
+                            parts,
                         });
                     }
                     currentId = currentMessage.children[0];
                 }
-                
+
+                function renderPart(part, convId) {
+                    if (typeof part === 'string') {
+                        if (!part.trim()) return null;
+                        const el = document.createElement('span');
+                        el.className = 'part-text';
+                        el.textContent = part;
+                        return el;
+                    }
+                    const ct = part.content_type;
+                    if (ct === 'image_asset_pointer') {
+                        const fileId = part.asset_pointer.replace(/^[^:]+:\/\//, '');
+                        const img = document.createElement('img');
+                        img.src = `/asset/${convId}/${fileId}`;
+                        img.className = 'chat-image';
+                        img.loading = 'lazy';
+                        return img;
+                    }
+                    if (ct === 'real_time_user_audio_video_asset_pointer') {
+                        const ptr = part.audio_asset_pointer?.asset_pointer;
+                        if (!ptr) return null;
+                        const fileId = ptr.replace(/^[^:]+:\/\//, '');
+                        const audio = document.createElement('audio');
+                        audio.controls = true;
+                        audio.src = `/asset/${convId}/${fileId}`;
+                        audio.className = 'chat-audio';
+                        return audio;
+                    }
+                    if (ct === 'audio_transcription') {
+                        if (!part.text?.trim()) return null;
+                        const el = document.createElement('span');
+                        el.className = 'part-transcription';
+                        el.textContent = part.text;
+                        return el;
+                    }
+                    // Fallback for unknown types
+                    const text = JSON.stringify(part);
+                    if (!text || text === '{}') return null;
+                    const el = document.createElement('span');
+                    el.className = 'part-text';
+                    el.textContent = text;
+                    return el;
+                }
+
                 // Display messages
                 messages.forEach(message => {
-                    if (message.content.trim()) {  // Skip empty messages
-                        const messageElement = document.createElement('div');
-                        messageElement.className = `message ${message.role}`;
-                        messageElement.textContent = message.content;
-                        chatMessages.appendChild(messageElement);
-                    }
+                    const rendered = message.parts
+                        .map(p => renderPart(p, convId))
+                        .filter(Boolean);
+                    if (!rendered.length) return;
+                    const messageElement = document.createElement('div');
+                    messageElement.className = `message ${message.role}`;
+                    rendered.forEach(el => messageElement.appendChild(el));
+                    chatMessages.appendChild(messageElement);
                 });
             } catch (error) {
                 console.error('Error loading chat:', error);
             }
         }
 
-        // Load chat list when page loads
-        document.addEventListener('DOMContentLoaded', loadChatList);
+        // Handle browser back/forward
+        window.addEventListener('popstate', (e) => {
+            if (e.state?.chatFile) {
+                loadChat(e.state.chatFile, false);
+            }
+        });
+
+        // Load chat list when page loads, then open chat from URL if present
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadChatList();
+            const match = window.location.pathname.match(/^\/chat\/([^/]+)$/);
+            if (match) {
+                const chatFile = match[1].endsWith('.json') ? match[1] : match[1] + '.json';
+                loadChat(chatFile, false);
+            }
+        });
     </script>
 </body>
 </html> 
