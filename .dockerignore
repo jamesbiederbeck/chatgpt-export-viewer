@@ -4,6 +4,8 @@
 
 # Chat data (mounted as volume at runtime)
 chats/
+data/
+*.zip
 
 # macOS system files
 .DS_Store
